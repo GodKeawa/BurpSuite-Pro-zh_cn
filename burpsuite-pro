@@ -130,7 +130,12 @@ fi
 add_java_candidate "/usr/lib/jvm/java-21-openjdk/bin/java"
 add_java_candidate "/usr/lib/jvm/java-17-openjdk/bin/java"
 
-java_opts=()
+java_opts=(
+    --add-opens=java.desktop/javax.swing=ALL-UNNAMED
+    --add-opens=java.base/java.lang=ALL-UNNAMED
+    --add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED
+    --add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED
+)
 if [[ -f "${configdir}/bp.java.options" ]]; then
   while IFS= read -r line; do
     [[ -z "${line}" ]] && continue
@@ -213,4 +218,6 @@ fi
 cmd+=(-jar "${pkg_share}/burpsuite-pro.jar")
 
 cd "${workdir}"
+echo "${cmd[@]}" "${pass_args[@]}"
+# exec "${java_bin}" "--version"
 exec "${cmd[@]}" "${pass_args[@]}"
