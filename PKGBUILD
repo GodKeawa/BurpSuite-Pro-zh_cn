@@ -1,35 +1,29 @@
-pkgname=burpsuitepro-cn
-pkgver=2025.11
-pkgrel=3
-pkgdesc='Burp Suite Professional bundled with BurpSuiteCN loader/translation for a single localized launcher'
+# Maintainer: Rasmus Moorats <xx+aur@nns.ee>
+# Maintainer: freb
+
+pkgname=burpsuite-pro
+pkgver=2026.9
+pkgrel=1
+pkgdesc='An integrated platform for performing security testing of web applications (professional edition)'
 url='https://portswigger.net/burp/'
-arch=('any')
-depends=('java-runtime=21' 'bash' 'hicolor-icon-theme')
+depends=('java-runtime>=26' 'hicolor-icon-theme')
 makedepends=('zip')
-license=('custom' 'Apache-2.0')
-provides=('burpsuite-pro')
-conflicts=('burpsuite-pro')
-_up_pkg=burpsuite-pro
-_cnver=4.11.22
-noextract=("${_up_pkg}-${pkgver}-orig.jar")
-source=("${_up_pkg}-${pkgver}-orig.jar::https://portswigger.net/burp/releases/download?product=pro&version=${pkgver}&type=Jar"
-        "${_up_pkg}"
-        "${_up_pkg}.desktop"
-        'icon16.png'
-        'icon24.png'
-        'icon32.png'
-        'icon48.png'
-        'icon128.png'
-        'icon256.png'
-        'icon512.png'
-        'icon.svg'
-        'cn-Logger++.txt'
-        'cn-PentagridScanController.txt'
-        'cn-Reshaper.txt'
-        "burpsuitloader-${_cnver}-all.jar::https://github.com/Leon406/BurpSuiteCN-Release/releases/download/v${_cnver}/burpsuitloader-${_cnver}-all.jar"
-        'BurpSuiteCN.LICENSE')
-sha256sums=('fcbb9d6181139d44fb627ab0dc73bcdb685d314a33de6ad33da7bb64ef123321'
-            '18b8179589f4f6af32d7383f0f2f022dac9e74f02dd608597c9ce5d097289b09'
+arch=('any')
+license=('custom')
+noextract=("${pkgname}-${pkgver}-orig.jar")
+source=("${pkgname}-${pkgver}-orig.jar::https://portswigger.net/burp/releases/download?product=desktop&version=${pkgver}&type=Jar"
+  "${pkgname}"
+  "${pkgname}.desktop"
+  'icon16.png'
+  'icon24.png'
+  'icon32.png'
+  'icon48.png'
+  'icon128.png'
+  'icon256.png'
+  'icon512.png'
+  'icon.svg')
+sha256sums=('d6c80be60575b59a3097e939b1cf4acf2efd104c0f6ed05166753180365fc7fc'
+            '939b66c99461307d361c91b811785b92a3cd376a4ac8e72dbf76af1b75503d78'
             'f442258c5616969bfaad7c20b2ff99f05696ad04c2e2c3d145a360615650b9ec'
             'ff0b230af06fb76af053090ac021bf45b88341d746e67f6bb9e94ba40957d9d8'
             'a6791fcaee558f6744b4f5a3fc0af2c9ad7ce244033e224c4e4464563ac9b911'
