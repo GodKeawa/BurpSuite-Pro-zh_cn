@@ -2,9 +2,13 @@
 
 基于 **ByteBuddy** 动态字节码插桩技术构建的现代化 Burp Suite Pro汉化项目
 
-### Usage 
+## Usage
 
-
+```Shell
+git clone https://github.com/GodKeawa/BurpSuite-Pro-zh_cn.git
+cd BurpSuite-Pro-zh_cn
+makepkg -scif
+```
 
 ## Credits
 

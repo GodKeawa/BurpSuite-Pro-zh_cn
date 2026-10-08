@@ -4,6 +4,7 @@ set -euo pipefail
 
 pkg_share="/usr/share/burpsuite-pro"
 pkg_agent="${pkg_share}/burpsuite-pro-cn-loader.jar"
+pkg_loader="${pkg_share}/BurpLoaderKeygen.jar"
 pkg_jar="${pkg_share}/burpsuite-pro.jar"
 
 data_home="${XDG_DATA_HOME:-${HOME}/.local/share}"
@@ -132,7 +133,9 @@ done
 
 cmd=("${java_bin}" "${java_opts[@]}")
 
-# 4. 配置汉化 Agent
+# 配置 Agent
+cmd+=("-javaagent:${pkg_loader}")
+
 if (( enable_cn == 1 )); then
   if [[ ! -f "${pkg_agent}" ]]; then
     echo "burpsuite-pro: 错误: 汉化 Agent 未找到: ${pkg_agent}" >&2

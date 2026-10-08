@@ -2,7 +2,6 @@
 # Maintainer: freb
 
 pkgname=burpsuite-pro
-_up_pkg=burpsuite-pro
 pkgver=2026.9
 pkgrel=1
 pkgdesc='An integrated platform for performing security testing of web applications (professional edition)'
@@ -23,9 +22,10 @@ source=("${pkgname}-${pkgver}-orig.jar::https://portswigger.net/burp/releases/do
   'icon256.png'
   'icon512.png'
   'icon.svg'
+  'BurpLoaderKeygen.jar'
   'burpsuite-pro-cn-loader.jar')
 sha256sums=('d6c80be60575b59a3097e939b1cf4acf2efd104c0f6ed05166753180365fc7fc'
-            'e5497af16b54dfe66c195d9dd91ace330888c35578f6f28a8888e12c4094fee7'
+            'f8caea16b9ed2f7437bf61193a38162e70fbb2467a83a8ab9e16b75c20b163c4'
             'f442258c5616969bfaad7c20b2ff99f05696ad04c2e2c3d145a360615650b9ec'
             'ff0b230af06fb76af053090ac021bf45b88341d746e67f6bb9e94ba40957d9d8'
             'a6791fcaee558f6744b4f5a3fc0af2c9ad7ce244033e224c4e4464563ac9b911'
@@ -35,30 +35,29 @@ sha256sums=('d6c80be60575b59a3097e939b1cf4acf2efd104c0f6ed05166753180365fc7fc'
             'da6469f32b0acfcad2057cf0920c128bbbf64bc72ec6a4d5e5ba10d5b8a2d859'
             '6bbfd022aa451efeb439a89527b814ae06f7ce6196f7ad8db276e9ad372a7e32'
             '8777077ed5b1809c8adde4c056a315f8ec8f1b79f4c4c0e60eb3582c4d7ab71d'
-            'd2f9de7c6fce5adbeb06c661bc38d5b33be06aae53b91dbc9853b9dc76c428ec')
+            'd969e27665f3d3dc09ccfa788ef55ed727818136d48937ec6bf083638cbd74b2'
+            'c7342b4ae7065c55a302effc0ea0588a90915bbb6d8596ba30552d04cb395000')
 
 prepare() {
-  cp "${srcdir}/${_up_pkg}-${pkgver}.jar" "${srcdir}/${_up_pkg}-${pkgver}-work.jar" 2>/dev/null || \
-  cp "${srcdir}/${_up_pkg}-${pkgver}-orig.jar" "${srcdir}/${_up_pkg}-${pkgver}.jar"
+  cp "${srcdir}/${pkgname}-${pkgver}.jar" "${srcdir}/${pkgname}-${pkgver}-work.jar" 2>/dev/null || \
+  cp "${srcdir}/${pkgname}-${pkgver}-orig.jar" "${srcdir}/${pkgname}-${pkgver}.jar"
   # remove useless chromium versions
-  zip -d "${srcdir}/${_up_pkg}-${pkgver}.jar" 'chromium-macosx*.zip' 'chromium-win*.zip' 2>/dev/null || true
+  zip -d "${srcdir}/${pkgname}-${pkgver}.jar" 'chromium-macosx*.zip' 'chromium-win*.zip' 2>/dev/null || true
 }
 
 package() {
-  local sharedir="${pkgdir}/usr/share/${_up_pkg}"
+  local sharedir="${pkgdir}/usr/share/${pkgname}"
 
-  install -Dm644 "${srcdir}/${_up_pkg}-${pkgver}.jar" "${sharedir}/${_up_pkg}.jar"
-  install -Dm644 "${srcdir}/${_up_pkg}.desktop" -t "${pkgdir}/usr/share/applications/"
-  install -Dm755 "${srcdir}/${_up_pkg}" "${pkgdir}/usr/bin/${_up_pkg}"
-  ln -sf "../${_up_pkg}" "${pkgdir}/usr/bin/${pkgname}"
+  install -Dm644 "${srcdir}/${pkgname}-${pkgver}.jar" "${sharedir}/${pkgname}.jar"
+  install -Dm644 "${srcdir}/${pkgname}.desktop" -t "${pkgdir}/usr/share/applications/"
+  install -Dm755 "${srcdir}/${pkgname}" "${pkgdir}/usr/bin/${pkgname}"
 
-  install -Dm644 "${srcdir}/burpsuite-pro-cn-loader.jar" "${sharedir}/${_up_pkg}-cn-loader.jar"
+  install -Dm644 "${srcdir}/burpsuite-pro-cn-loader.jar" "${sharedir}/burpsuite-pro-cn-loader.jar"
+  install -Dm644 "${srcdir}/BurpLoaderKeygen.jar" "${sharedir}/BurpLoaderKeygen.jar"
 
   # install icons
   for size in 16 24 32 48 128 256 512; do
     install -Dm644 "${srcdir}/icon${size}.png" "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/burpsuite-pro.png"
   done
   install -Dm644 "${srcdir}/icon.svg" "${pkgdir}/usr/share/icons/hicolor/scalable/apps/burpsuite-pro.svg"
-
-  install -Dm644 "${srcdir}/BurpSuiteCN.LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/BurpSuiteCN.LICENSE"
 }
