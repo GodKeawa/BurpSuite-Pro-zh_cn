@@ -2,11 +2,12 @@
 # Maintainer: freb
 
 pkgname=burpsuite-pro
+_up_pkg=burpsuite-pro
 pkgver=2026.9
 pkgrel=1
 pkgdesc='An integrated platform for performing security testing of web applications (professional edition)'
 url='https://portswigger.net/burp/'
-depends=('java-runtime>=26' 'hicolor-icon-theme')
+depends=('java-runtime>=21' 'hicolor-icon-theme')
 makedepends=('zip')
 arch=('any')
 license=('custom')
@@ -21,9 +22,10 @@ source=("${pkgname}-${pkgver}-orig.jar::https://portswigger.net/burp/releases/do
   'icon128.png'
   'icon256.png'
   'icon512.png'
-  'icon.svg')
+  'icon.svg'
+  'burpsuite-pro-cn-loader.jar')
 sha256sums=('d6c80be60575b59a3097e939b1cf4acf2efd104c0f6ed05166753180365fc7fc'
-            '939b66c99461307d361c91b811785b92a3cd376a4ac8e72dbf76af1b75503d78'
+            'e5497af16b54dfe66c195d9dd91ace330888c35578f6f28a8888e12c4094fee7'
             'f442258c5616969bfaad7c20b2ff99f05696ad04c2e2c3d145a360615650b9ec'
             'ff0b230af06fb76af053090ac021bf45b88341d746e67f6bb9e94ba40957d9d8'
             'a6791fcaee558f6744b4f5a3fc0af2c9ad7ce244033e224c4e4464563ac9b911'
@@ -33,16 +35,13 @@ sha256sums=('d6c80be60575b59a3097e939b1cf4acf2efd104c0f6ed05166753180365fc7fc'
             'da6469f32b0acfcad2057cf0920c128bbbf64bc72ec6a4d5e5ba10d5b8a2d859'
             '6bbfd022aa451efeb439a89527b814ae06f7ce6196f7ad8db276e9ad372a7e32'
             '8777077ed5b1809c8adde4c056a315f8ec8f1b79f4c4c0e60eb3582c4d7ab71d'
-            '6dffd89f3c92605a09d4494bc23245830ba20ec96db173e273e78f4fd86f85b2'
-            'ccf9d6ec55d42be4de6165b6bbc61ab2351389c41b7906246f518a7dae1506b8'
-            'e84e75f16163c6d18e1405f83fa4aafe0ef4a1bbc3d7f69813993673d383b662'
-            '650a4e48e2788747c56899b0e6e8e17bc3b75d2ec91f03fd7cc373a489a20b5d'
-            'c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4')
+            'd2f9de7c6fce5adbeb06c661bc38d5b33be06aae53b91dbc9853b9dc76c428ec')
 
 prepare() {
+  cp "${srcdir}/${_up_pkg}-${pkgver}.jar" "${srcdir}/${_up_pkg}-${pkgver}-work.jar" 2>/dev/null || \
   cp "${srcdir}/${_up_pkg}-${pkgver}-orig.jar" "${srcdir}/${_up_pkg}-${pkgver}.jar"
   # remove useless chromium versions
-  zip -d "${srcdir}/${_up_pkg}-${pkgver}.jar" 'chromium-macosx*.zip' 'chromium-win*.zip'
+  zip -d "${srcdir}/${_up_pkg}-${pkgver}.jar" 'chromium-macosx*.zip' 'chromium-win*.zip' 2>/dev/null || true
 }
 
 package() {
@@ -53,10 +52,7 @@ package() {
   install -Dm755 "${srcdir}/${_up_pkg}" "${pkgdir}/usr/bin/${_up_pkg}"
   ln -sf "../${_up_pkg}" "${pkgdir}/usr/bin/${pkgname}"
 
-  install -Dm644 "${srcdir}/burpsuitloader-${_cnver}-all.jar" "${sharedir}/${_up_pkg}-cn-loader.jar"
-  install -Dm644 "${srcdir}/cn-Logger++.txt" "${sharedir}/cn/cn-Logger++.txt"
-  install -Dm644 "${srcdir}/cn-PentagridScanController.txt" "${sharedir}/cn/cn-PentagridScanController.txt"
-  install -Dm644 "${srcdir}/cn-Reshaper.txt" "${sharedir}/cn/cn-Reshaper.txt"
+  install -Dm644 "${srcdir}/burpsuite-pro-cn-loader.jar" "${sharedir}/${_up_pkg}-cn-loader.jar"
 
   # install icons
   for size in 16 24 32 48 128 256 512; do

@@ -1,0 +1,4 @@
+[submodule "burp-cn-agent"]
+	path = burp-cn-agent
+	url = https://github.com/GodKeawa/burp-cn-agent.git
+	branch = main

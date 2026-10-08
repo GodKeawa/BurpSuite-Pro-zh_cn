@@ -3,8 +3,8 @@
 set -euo pipefail
 
 pkg_share="/usr/share/burpsuite-pro"
-pkg_cn_share="${pkg_share}/cn"
 pkg_agent="${pkg_share}/burpsuite-pro-cn-loader.jar"
+pkg_jar="${pkg_share}/burpsuite-pro.jar"
 
 data_home="${XDG_DATA_HOME:-${HOME}/.local/share}"
 workdir="${data_home}/burpsuite-pro-cn"
@@ -13,144 +13,87 @@ configdir="${config_home}/burpsuite-pro-cn"
 
 mkdir -p "${workdir}" "${configdir}"
 
-max_supported_java=21
-allow_unsupported_java="${BURP_CN_ALLOW_UNSUPPORTED_JAVA:-0}"
-declare -a java_candidates=()
-selected_java_notice=""
-
-add_java_candidate() {
-  local candidate=$1
-  [[ -n "${candidate}" ]] || return
-  # avoid duplicates to keep messaging predictable
-  for existing in "${java_candidates[@]}"; do
-    if [[ "${existing}" == "${candidate}" ]]; then
-      return
-    fi
-  done
-  java_candidates+=("${candidate}")
-}
-
-java_major_version() {
+# 1. 查找兼容的 Java 运行时 (>= 21)
+check_java_version() {
   local bin=$1
-  local header
-  header=$("${bin}" -version 2>&1 | head -n1) || return 1
-  if [[ ${header} =~ ([0-9]+)(\.[0-9]+)? ]]; then
+  [[ -x "${bin}" ]] || return 1
+  local ver_str
+  ver_str=$("${bin}" -version 2>&1 | head -n1) || return 1
+  if [[ ${ver_str} =~ ([0-9]+)(\.[0-9]+)? ]]; then
     local major=${BASH_REMATCH[1]}
-    if [[ ${major} == "1" && ${header} =~ 1\.([0-9]+) ]]; then
+    if [[ ${major} == "1" && ${ver_str} =~ 1\.([0-9]+) ]]; then
       major=${BASH_REMATCH[1]}
     fi
-    printf '%s\n' "${major}"
-    return 0
+    if (( major >= 21 )); then
+      return 0
+    fi
   fi
   return 1
 }
 
-select_java_bin() {
-  local require_supported=$1
-  local first_exec=""
-  local skipped_due_to_version=0
+find_java() {
+  local candidates=()
+  [[ -n "${BURP_PRO_JAVA_BIN:-}" ]] && candidates+=("${BURP_PRO_JAVA_BIN}")
+  [[ -n "${BURP_PRO_JAVA_HOME:-}" ]] && candidates+=("${BURP_PRO_JAVA_HOME%/}/bin/java")
+  if [[ -f "${configdir}/bp.java" ]]; then
+    local custom_home
+    read -r custom_home < "${configdir}/bp.java" || true
+    [[ -n "${custom_home:-}" ]] && candidates+=("${custom_home%/}/bin/java")
+  fi
+  [[ -n "${JAVA_HOME:-}" ]] && candidates+=("${JAVA_HOME%/}/bin/java")
+  local sys_java
+  sys_java="$(command -v java 2>/dev/null || true)"
+  [[ -n "${sys_java}" ]] && candidates+=("${sys_java}")
+  candidates+=(
+    "/usr/lib/jvm/java-27-openjdk/bin/java"
+    "/usr/lib/jvm/java-26-openjdk/bin/java"
+    "/usr/lib/jvm/java-25-openjdk/bin/java"
+    "/usr/lib/jvm/java-21-openjdk/bin/java"
+  )
 
-  for candidate in "${java_candidates[@]}"; do
-    [[ -x "${candidate}" ]] || continue
-    if [[ -z "${first_exec}" ]]; then
-      first_exec="${candidate}"
-    fi
-
-    if [[ "${require_supported}" == "1" ]]; then
-      local major
-      if ! major=$(java_major_version "${candidate}"); then
-        continue
-      fi
-      if (( major > max_supported_java )); then
-        skipped_due_to_version=1
-        continue
-      fi
-      if (( skipped_due_to_version == 1 )); then
-        selected_java_notice="burpsuite-pro: falling back to Java ${major} at ${candidate} for CN loader compatibility (requires <= ${max_supported_java})."
-      fi
-      printf '%s\n' "${candidate}"
-      return 0
-    else
-      printf '%s\n' "${candidate}"
+  for cand in "${candidates[@]}"; do
+    if check_java_version "${cand}"; then
+      printf '%s\n' "${cand}"
       return 0
     fi
   done
-
-  if [[ "${require_supported}" == "1" && "${allow_unsupported_java}" == "1" && -n "${first_exec}" ]]; then
-    printf '%s\n' "${first_exec}"
-    return 0
-  fi
-
-  if [[ "${require_supported}" == "1" ]]; then
-    echo "burpsuite-pro: 无法找到兼容的 Java 运行时 (需要 <= ${max_supported_java})。请安装 jdk21-openjdk 或通过 bp.java/BURP_PRO_JAVA_HOME 指定。" >&2
-  else
-    echo "burpsuite-pro: 未找到可执行的 java" >&2
-  fi
   return 1
 }
 
-sync_resource() {
-  local src=$1 dest=$2
-  if [[ -f "${src}" ]]; then
-    if [[ ! -f "${dest}" ]] || [[ "${src}" -nt "${dest}" ]]; then
-      install -Dm644 "${src}" "${dest}"
-    fi
-  fi
-}
-
-# copy bundled localization assets so that the user-writable workdir has them
-sync_resource "${pkg_agent}" "${workdir}/burpsuite-pro-cn-loader.jar"
-if [[ -d "${pkg_cn_share}" ]]; then
-  while IFS= read -r -d '' file; do
-    base=$(basename "${file}")
-    sync_resource "${file}" "${workdir}/${base}"
-  done < <(find "${pkg_cn_share}" -maxdepth 1 -type f -name 'cn*.txt' -print0)
+java_bin=""
+if ! java_bin="$(find_java)"; then
+  echo "burpsuite-pro: 错误: 未找到兼容的 Java 运行时 (需要 Java >= 21)。" >&2
+  echo "请安装 jdk21-openjdk 或通过环境变量 JAVA_HOME / BURP_PRO_JAVA_BIN 指定。" >&2
+  exit 1
 fi
 
-if [[ -n "${BURP_PRO_JAVA_BIN:-}" ]]; then
-  add_java_candidate "${BURP_PRO_JAVA_BIN}"
-fi
-if [[ -n "${BURP_PRO_JAVA_HOME:-}" ]]; then
-  add_java_candidate "${BURP_PRO_JAVA_HOME%/}/bin/java"
-fi
-custom_java_home=""
-if [[ -f "${configdir}/bp.java" ]]; then
-  read -r custom_java_home < "${configdir}/bp.java" || true
-  if [[ -n "${custom_java_home:-}" ]]; then
-    add_java_candidate "${custom_java_home%/}/bin/java"
-  fi
-fi
-if [[ -n "${JAVA_HOME:-}" ]]; then
-  add_java_candidate "${JAVA_HOME%/}/bin/java"
-fi
-system_java="$(command -v java 2>/dev/null || true)"
-if [[ -n "${system_java}" ]]; then
-  add_java_candidate "${system_java}"
-fi
-add_java_candidate "/usr/lib/jvm/java-21-openjdk/bin/java"
-add_java_candidate "/usr/lib/jvm/java-17-openjdk/bin/java"
-
+# 2. 构造 JVM 参数
 java_opts=(
-    --add-opens=java.desktop/javax.swing=ALL-UNNAMED
-    --add-opens=java.base/java.lang=ALL-UNNAMED
-    --add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED
-    --add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED
+  --add-opens=java.desktop/javax.swing=ALL-UNNAMED
+  --add-opens=java.desktop/java.awt=ALL-UNNAMED
+  --add-opens=java.base/java.lang=ALL-UNNAMED
+  --add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED
+  --add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED
+  --add-opens=java.base/jdk.internal.org.objectweb.asm.Opcodes=ALL-UNNAMED
 )
+
 if [[ -f "${configdir}/bp.java.options" ]]; then
   while IFS= read -r line; do
-    [[ -z "${line}" ]] && continue
+    [[ -z "${line}" || "${line}" =~ ^# ]] && continue
     java_opts+=("${line}")
   done < "${configdir}/bp.java.options"
 fi
+
 if [[ -n "${BURP_PRO_JAVA_OPTS:-}" ]]; then
   # shellcheck disable=SC2206
   java_opts+=(${BURP_PRO_JAVA_OPTS})
 fi
 
-enable_cn="${BURP_CN_ENABLE:-1}"
-cn_agent_flags="${BURP_CN_AGENT_FLAGS:-loader,han}"
-
+# 3. 解析命令行参数
+enable_cn=1
+cn_agent_flags="han"
 pass_args=()
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --english|--no-cn)
@@ -161,63 +104,49 @@ while [[ $# -gt 0 ]]; do
       enable_cn=1
       shift
       ;;
-    --cn-mode=*)
+    --dump)
       enable_cn=1
-      cn_agent_flags="${1#*=}"
+      cn_agent_flags="dump"
       shift
       ;;
-    --cn-mode)
+    --dump=*)
       enable_cn=1
-      if [[ $# -lt 2 ]]; then
-        echo "--cn-mode expects an argument" >&2
-        exit 2
-      fi
-      cn_agent_flags="$2"
-      shift 2
+      cn_agent_flags="dump=${1#*=}"
+      shift
       ;;
     --)
       shift
+      pass_args+=("$@")
       break
       ;;
+    -*)
+      echo "burpsuite-pro: 错误: 未知选项 '$1'" >&2
+      exit 1
+      ;;
     *)
-      break
+      pass_args+=("$1")
+      shift
       ;;
   esac
 done
 
-pass_args+=("$@")
+cmd=("${java_bin}" "${java_opts[@]}")
 
-java_bin=""
-if java_bin=$(select_java_bin "${enable_cn}"); then
-  :
-else
-  if [[ "${enable_cn}" != "0" && "${allow_unsupported_java}" == "1" ]]; then
-    echo "burpsuite-pro: 已允许使用不受支持的 Java 版本 (BURP_CN_ALLOW_UNSUPPORTED_JAVA=1)。" >&2
+# 4. 配置汉化 Agent
+if (( enable_cn == 1 )); then
+  if [[ ! -f "${pkg_agent}" ]]; then
+    echo "burpsuite-pro: 错误: 汉化 Agent 未找到: ${pkg_agent}" >&2
+    exit 1
   fi
+  cmd+=("-javaagent:${pkg_agent}=${cn_agent_flags}")
+fi
+
+if [[ ! -f "${pkg_jar}" ]]; then
+  echo "burpsuite-pro: 错误: BurpSuite 主程序未找到: ${pkg_jar}" >&2
   exit 1
 fi
 
-if [[ -n "${selected_java_notice}" ]]; then
-  echo "${selected_java_notice}" >&2
-fi
-
-cmd=("${java_bin}")
-if [[ ${#java_opts[@]} -gt 0 ]]; then
-  cmd+=("${java_opts[@]}")
-fi
-
-if [[ "${enable_cn}" != "0" ]]; then
-  agent_path="${workdir}/burpsuite-pro-cn-loader.jar"
-  if [[ ! -f "${agent_path}" ]]; then
-    echo "burpsuite-pro: missing localization agent at ${agent_path}" >&2
-    exit 1
-  fi
-  cmd+=(-javaagent:"${agent_path}"="${cn_agent_flags}")
-fi
-
-cmd+=(-jar "${pkg_share}/burpsuite-pro.jar")
+cmd+=(-jar "${pkg_jar}")
 
 cd "${workdir}"
-echo "${cmd[@]}" "${pass_args[@]}"
-# exec "${java_bin}" "--version"
 exec "${cmd[@]}" "${pass_args[@]}"
